@@ -1,5 +1,6 @@
 locals {
-  create_role = local.create && var.create_function && !var.create_layer && var.create_role
+  #create_role = local.create && var.create_function && !var.create_layer && var.create_role
+  create_role = false
 
   # Lambda@Edge uses the Cloudwatch region closest to the location where the function is executed
   # The region part of the LogGroup ARN is then replaced with a wildcard (*) so Lambda@Edge is able to log in every region
@@ -91,19 +92,19 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-resource "aws_iam_role" "lambda" {
-  count = local.create_role ? 1 : 0
-
-  name                  = local.role_name
-  description           = var.role_description
-  path                  = var.role_path
-  force_detach_policies = var.role_force_detach_policies
-  permissions_boundary  = var.role_permissions_boundary
-  assume_role_policy    = data.aws_iam_policy_document.assume_role[0].json
-  max_session_duration  = var.role_maximum_session_duration
-
-  tags = merge(var.tags, var.role_tags)
-}
+#resource "aws_iam_role" "lambda" {
+#  count = local.create_role ? 1 : 0
+#
+#  name                  = local.role_name
+#  description           = var.role_description
+#  path                  = var.role_path
+#  force_detach_policies = var.role_force_detach_policies
+#  permissions_boundary  = var.role_permissions_boundary
+#  assume_role_policy    = data.aws_iam_policy_document.assume_role[0].json
+#  max_session_duration  = var.role_maximum_session_duration
+#
+#  tags = merge(var.tags, var.role_tags)
+#}
 
 ##################
 # Cloudwatch Logs
