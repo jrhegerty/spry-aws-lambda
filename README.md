@@ -1,3 +1,24 @@
+# spry-aws-lambda (Forked)
+
+This customized fork of [terraform-aws-lambda](https://github.com/terraform-aws-modules/terraform-aws-lambda) disables automatic IAM role creation for Lambda functions, allowing teams to supply externally managed IAM roles.
+
+## 🎯 Key Differences from Upstream
+
+- `create_role = false` disables IAM role creation
+- Module no longer references `aws_iam_role.lambda`
+- All IAM-related resources (`aws_iam_role_policy`, `attachments`, etc.) are commented out or gated
+- Outputs (`lambda_role_arn`, `lambda_role_name`, etc.) are derived from `var.lambda_role`, `var.lambda_name`, and `var.lambda_id`
+
+## 🛠️ Inputs
+
+```hcl
+lambda_role = aws_iam_role.external.arn
+lambda_name = aws_iam_role.external.name
+lambda_id   = aws_iam_role.external.unique_id
+```
+
+---
+
 # AWS Lambda Terraform module
 
 Terraform module, which creates almost all supported AWS Lambda resources as well as taking care of building and packaging of required Lambda dependencies for functions and layers.
