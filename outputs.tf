@@ -129,18 +129,18 @@ output "lambda_event_source_mapping_uuid" {
 
 # IAM Role
 output "lambda_role_arn" {
-  description = "The ARN of the IAM role created for the Lambda Function"
-  value       = try(aws_iam_role.lambda[0].arn, "")
+  description = "The ARN of the IAM role used by the Lambda Function"
+  value       = var.lambda_role != "" ? var.lambda_role : null
 }
 
 output "lambda_role_name" {
   description = "The name of the IAM role created for the Lambda Function"
-  value       = try(aws_iam_role.lambda[0].name, "")
+  value       = var.lambda_role != "" ? var.lambda_name : null
 }
 
 output "lambda_role_unique_id" {
   description = "The unique id of the IAM role created for the Lambda Function"
-  value       = try(aws_iam_role.lambda[0].unique_id, "")
+  value       = var.lambda_role != "" ? var.lambda_id : null
 }
 
 # CloudWatch Log Group

@@ -6,7 +6,7 @@ locals {
   # The region part of the LogGroup ARN is then replaced with a wildcard (*) so Lambda@Edge is able to log in every region
   log_group_arn_regional = try(data.aws_cloudwatch_log_group.lambda[0].arn, aws_cloudwatch_log_group.lambda[0].arn, "")
   log_group_name         = try(data.aws_cloudwatch_log_group.lambda[0].name, aws_cloudwatch_log_group.lambda[0].name, "")
-  log_group_arn          = local.create_role && var.lambda_at_edge ? format("arn:%s:%s:%s:%s:%s", data.aws_arn.log_group_arn[0].partition, data.aws_arn.log_group_arn[0].service, var.lambda_at_edge_logs_all_regions ? "*" : "us-east-1", data.aws_arn.log_group_arn[0].account, data.aws_arn.log_group_arn[0].resource) : local.log_group_arn_regional
+  log_group_arn          = (local.create_role && var.lambda_at_edge) ? format("arn:%s:%s:%s:%s:%s", data.aws_arn.log_group_arn[0].partition, data.aws_arn.log_group_arn[0].service, var.lambda_at_edge_logs_all_regions ? "*" : "us-east-1", data.aws_arn.log_group_arn[0].account, data.aws_arn.log_group_arn[0].resource) : local.log_group_arn_regional
 
   # Defaulting to "*" (an invalid character for an IAM Role name) will cause an error when
   #   attempting to plan if the role_name and function_name are not set.  This is a workaround
@@ -111,13 +111,13 @@ data "aws_iam_policy_document" "assume_role" {
 ##################
 
 data "aws_arn" "log_group_arn" {
-  count = local.create_role && var.lambda_at_edge ? 1 : 0
+  count = (local.create_role && var.lambda_at_edge) ? 1 : 0
 
   arn = local.log_group_arn_regional
 }
 
 data "aws_iam_policy_document" "logs" {
-  count = local.create_role && var.attach_cloudwatch_logs_policy ? 1 : 0
+  count = (local.create_role && var.attach_cloudwatch_logs_policy) ? 1 : 0
 
   statement {
     effect = "Allow"
@@ -132,20 +132,20 @@ data "aws_iam_policy_document" "logs" {
   }
 }
 
-resource "aws_iam_role_policy" "logs" {
-  count = local.create_role && var.attach_cloudwatch_logs_policy ? 1 : 0
+# resource "aws_iam_role_policy" "logs" {
+#   count = (local.create_role && var.attach_cloudwatch_logs_policy) ? 1 : 0
 
-  name   = "${local.policy_name}-logs"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy_document.logs[0].json
-}
+#   name   = "${local.policy_name}-logs"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy_document.logs[0].json
+# }
 
 #####################
 # Dead Letter Config
 #####################
 
 data "aws_iam_policy_document" "dead_letter" {
-  count = local.create_role && var.attach_dead_letter_policy ? 1 : 0
+  count = (local.create_role && var.attach_dead_letter_policy) ? 1 : 0
 
   statement {
     effect = "Allow"
@@ -161,13 +161,13 @@ data "aws_iam_policy_document" "dead_letter" {
   }
 }
 
-resource "aws_iam_role_policy" "dead_letter" {
-  count = local.create_role && var.attach_dead_letter_policy ? 1 : 0
+# resource "aws_iam_role_policy" "dead_letter" {
+#   count = (local.create_role && var.attach_dead_letter_policy) ? 1 : 0
 
-  name   = "${local.policy_name}-dl"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy_document.dead_letter[0].json
-}
+#   name   = "${local.policy_name}-dl"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy_document.dead_letter[0].json
+# }
 
 ######
 # VPC
@@ -175,18 +175,18 @@ resource "aws_iam_role_policy" "dead_letter" {
 
 # Copying AWS managed policy to be able to attach the same policy with multiple roles without overwrites by another function
 data "aws_iam_policy" "vpc" {
-  count = local.create_role && var.attach_network_policy ? 1 : 0
+  count = (local.create_role && var.attach_network_policy) ? 1 : 0
 
   arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AWSLambdaENIManagementAccess"
-}
+} 
 
-resource "aws_iam_role_policy" "vpc" {
-  count = local.create_role && var.attach_network_policy ? 1 : 0
+# resource "aws_iam_role_policy" "vpc" {
+#   count = (local.create_role && var.attach_network_policy ? 1 : 0)
 
-  name   = "${local.policy_name}-vpc"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy.vpc[0].policy
-}
+#   name   = "${local.policy_name}-vpc"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy.vpc[0].policy
+# }
 
 #####################
 # Tracing with X-Ray
@@ -194,25 +194,25 @@ resource "aws_iam_role_policy" "vpc" {
 
 # Copying AWS managed policy to be able to attach the same policy with multiple roles without overwrites by another function
 data "aws_iam_policy" "tracing" {
-  count = local.create_role && var.attach_tracing_policy ? 1 : 0
+  count = (local.create_role && var.attach_tracing_policy) ? 1 : 0
 
   arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }
 
-resource "aws_iam_role_policy" "tracing" {
-  count = local.create_role && var.attach_tracing_policy ? 1 : 0
+# resource "aws_iam_role_policy" "tracing" {
+#   count = (local.create_role && var.attach_tracing_policy) ? 1 : 0
 
-  name   = "${local.policy_name}-tracing"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy.tracing[0].policy
-}
+#   name   = "${local.policy_name}-tracing"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy.tracing[0].policy
+# }
 
 ###############################
 # Failure/Success Async Events
 ###############################
 
 data "aws_iam_policy_document" "async" {
-  count = local.create_role && var.attach_async_event_policy ? 1 : 0
+  count = (local.create_role && var.attach_async_event_policy) ? 1 : 0
 
   statement {
     effect = "Allow"
@@ -228,66 +228,66 @@ data "aws_iam_policy_document" "async" {
   }
 }
 
-resource "aws_iam_role_policy" "async" {
-  count = local.create_role && var.attach_async_event_policy ? 1 : 0
+# resource "aws_iam_role_policy" "async" {
+#   count = (local.create_role && var.attach_async_event_policy) ? 1 : 0
 
-  name   = "${local.policy_name}-async"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy_document.async[0].json
-}
+#   name   = "${local.policy_name}-async"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy_document.async[0].json
+# }
 
 ###########################
 # Additional policy (JSON)
 ###########################
 
-resource "aws_iam_role_policy" "additional_json" {
-  count = local.create_role && var.attach_policy_json ? 1 : 0
+# resource "aws_iam_role_policy" "additional_json" {
+#   count = (local.create_role && var.attach_policy_json) ? 1 : 0
 
-  name   = local.policy_name
-  role   = aws_iam_role.lambda[0].name
-  policy = var.policy_json
-}
+#   name   = local.policy_name
+#   role   = aws_iam_role.lambda[0].name
+#   policy = var.policy_json
+# }
 
 #####################################
 # Additional policies (list of JSON)
 #####################################
 
-resource "aws_iam_role_policy" "additional_jsons" {
-  count = local.create_role && var.attach_policy_jsons ? var.number_of_policy_jsons : 0
+# resource "aws_iam_role_policy" "additional_jsons" {
+#   count = (local.create_role && var.attach_policy_jsons) ? var.number_of_policy_jsons : 0
 
-  name   = "${local.policy_name}-${count.index}"
-  role   = aws_iam_role.lambda[0].name
-  policy = var.policy_jsons[count.index]
-}
+#   name   = "${local.policy_name}-${count.index}"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = var.policy_jsons[count.index]
+# }
 
 ###########################
 # ARN of additional policy
 ###########################
 
-resource "aws_iam_role_policy_attachment" "additional_one" {
-  count = local.create_role && var.attach_policy ? 1 : 0
+# resource "aws_iam_role_policy_attachment" "additional_one" {
+#   count = (local.create_role && var.attach_policy) ? 1 : 0
 
-  role       = aws_iam_role.lambda[0].name
-  policy_arn = var.policy
-}
+#   role       = aws_iam_role.lambda[0].name
+#   policy_arn = var.policy
+# }
 
 ######################################
 # List of ARNs of additional policies
 ######################################
 
-resource "aws_iam_role_policy_attachment" "additional_many" {
-  count = local.create_role && var.attach_policies ? var.number_of_policies : 0
+# resource "aws_iam_role_policy_attachment" "additional_many" {
+#   count = (local.create_role && var.attach_policies) ? var.number_of_policies : 0
 
-  role       = aws_iam_role.lambda[0].name
-  policy_arn = var.policies[count.index]
-}
+#   role       = aws_iam_role.lambda[0].name
+#   policy_arn = var.policies[count.index]
+# }
 
 ###############################
 # Additional policy statements
 ###############################
 
 data "aws_iam_policy_document" "additional_inline" {
-  count = local.create_role && var.attach_policy_statements ? 1 : 0
+  count = (local.create_role && var.attach_policy_statements) ? 1 : 0
 
   dynamic "statement" {
     for_each = var.policy_statements
@@ -328,10 +328,10 @@ data "aws_iam_policy_document" "additional_inline" {
   }
 }
 
-resource "aws_iam_role_policy" "additional_inline" {
-  count = local.create_role && var.attach_policy_statements ? 1 : 0
+# resource "aws_iam_role_policy" "additional_inline" {
+#   count = (local.create_role && var.attach_policy_statements) ? 1 : 0
 
-  name   = "${local.policy_name}-inline"
-  role   = aws_iam_role.lambda[0].name
-  policy = data.aws_iam_policy_document.additional_inline[0].json
-}
+#   name   = "${local.policy_name}-inline"
+#   role   = aws_iam_role.lambda[0].name
+#   policy = data.aws_iam_policy_document.additional_inline[0].json
+# }
